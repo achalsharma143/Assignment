@@ -1,0 +1,42 @@
+pipeline {
+    agent any
+    tools{
+        maven 'maven-3.8'
+    }
+
+    stages {
+        stage ('checkout and build maven') {
+            steps {
+                git branch: 'main', url:  ‘https://github.com/achalsharma143/Assignment.git’
+                sh 'mvn clean install'
+            }
+        }
+        stage ('docker image build'){
+            steps {
+                script {
+                    sh 'docker build -t <imagename> . '
+                }
+            }
+        }
+        stage ('push to dockerhub'){
+            steps {
+                script {
+                    withCredentials([string(credentialsId: 'passwd', variable: 'paswd')]) {
+                        sh  'docker login -u <username> -p ${paswd}'
+    
+}
+                         sh  'docker push  <reponame/registryname:tag> '
+                }
+            }
+        }
+        stage ('deploy to kubernetes'){
+            steps  {
+                script {
+                    kubernetesDeploy configs: 'deploymentservice.yaml', kubeConfig: [path: ''], kubeconfigId: 'k8sconfigpwd', secretName: '', ssh: [sshCredentialsId: '*', sshServer: ''], textCredentials: [certificateAuthorityData: '', clientCertificateData: '', clientKeyData: '', serverUrl: 'https://']
+                    
+                }
+            }
+        }
+        
+    }
+}
